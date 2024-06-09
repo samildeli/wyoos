@@ -34,6 +34,17 @@ void printf(char* str)
 
     static uint8_t x=0,y=0;
 
+    // Clear screen if c is passed.
+    if (str[0] == 'c' && str[1] == '\0') {
+        for(y = 0; y < 25; y++)
+            for(x = 0; x < 80; x++)
+                VideoMemory[80*y+x] = (VideoMemory[80*y+x] & 0xFF00) | ' ';
+        x = 0;
+        y = 0;
+        
+        return;
+    }
+
     for(int i = 0; str[i] != '\0'; ++i)
     {
         switch(str[i])
@@ -139,29 +150,6 @@ public:
 
 
 
-
-void sysprintf(char* str)
-{
-    asm("int $0x80" : : "a" (4), "b" (str));
-}
-
-void taskA()
-{
-    while(true)
-        sysprintf("A");
-}
-
-void taskB()
-{
-    while(true)
-        sysprintf("B");
-}
-
-
-
-
-
-
 typedef void (*constructor)();
 extern "C" constructor start_ctors;
 extern "C" constructor end_ctors;
@@ -198,16 +186,10 @@ extern "C" void kernelMain(const void* multiboot_structure, uint32_t /*multiboot
     printfHex(((size_t)allocated      ) & 0xFF);
     printf("\n");
     
-    TaskManager taskManager;
-    Task task1(&gdt, taskA);
-    Task task2(&gdt, taskB);
-    taskManager.AddTask(&task1);
-    taskManager.AddTask(&task2);
-
-    
+    TaskManager taskManager(&gdt);
     InterruptManager interrupts(0x20, &gdt, &taskManager);
-    SyscallHandler syscalls(&interrupts, 0x80);
-    
+    SyscallHandler syscalls(&interrupts, 0x80, &taskManager);
+
     printf("Initializing Hardware, Stage 1\n");
     
     #ifdef GRAPHICSMODE
@@ -281,9 +263,8 @@ extern "C" void kernelMain(const void* multiboot_structure, uint32_t /*multiboot
     amd_am79c973* eth0 = (amd_am79c973*)(drvManager.drivers[2]);
     eth0->Send((uint8_t*)"Hello Network", 13);
         
-
+    printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"); // Skip info printed during initialization.
     interrupts.Activate();
-
 
     while(1)
     {

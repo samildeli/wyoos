@@ -67,14 +67,7 @@ HandleInterruptRequest 0x80
 
 
 int_bottom:
-
-    # save registers
-    #pusha
-    #pushl %ds
-    #pushl %es
-    #pushl %fs
-    #pushl %gs
-    
+    # Save the general purpose registers.
     pushl %ebp
     pushl %edi
     pushl %esi
@@ -84,20 +77,13 @@ int_bottom:
     pushl %ebx
     pushl %eax
 
-    # load ring 0 segment register
-    #cld
-    #mov $0x10, %eax
-    #mov %eax, %eds
-    #mov %eax, %ees
-
-    # call C++ Handler
+    # Call the interrupt handler from C++.
     pushl %esp
     push (interruptnumber)
     call _ZN4myos21hardwarecommunication16InterruptManager15HandleInterruptEhj
-    #add %esp, 6
-    mov %eax, %esp # switch the stack
+    mov %eax, %esp  # Switch to the stack pointer returned by the interrupt.
 
-    # restore registers
+    # Restore the general purpose registers.
     popl %eax
     popl %ebx
     popl %ecx
@@ -106,18 +92,12 @@ int_bottom:
     popl %esi
     popl %edi
     popl %ebp
-    #pop %gs
-    #pop %fs
-    #pop %es
-    #pop %ds
-    #popa
     
-    add $4, %esp
+    add $4, %esp  # Skip error.
 
 .global _ZN4myos21hardwarecommunication16InterruptManager15InterruptIgnoreEv
 _ZN4myos21hardwarecommunication16InterruptManager15InterruptIgnoreEv:
-
-    iret
+    iret  # Restore the other registers.
 
 
 .data

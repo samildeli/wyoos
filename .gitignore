@@ -27,3 +27,10 @@
 *.exe
 *.out
 *.app
+
+# Other
+.vscode
+obj
+wyoos.bin
+wyoos.iso
+iso

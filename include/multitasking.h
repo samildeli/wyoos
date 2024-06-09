@@ -1,15 +1,11 @@
- 
 #ifndef __MYOS__MULTITASKING_H
 #define __MYOS__MULTITASKING_H
 
 #include <common/types.h>
 #include <gdt.h>
 
-namespace myos
-{
-    
-    struct CPUState
-    {
+namespace myos {
+    struct CPUState {
         common::uint32_t eax;
         common::uint32_t ebx;
         common::uint32_t ecx;
@@ -19,50 +15,52 @@ namespace myos
         common::uint32_t edi;
         common::uint32_t ebp;
 
-        /*
-        common::uint32_t gs;
-        common::uint32_t fs;
-        common::uint32_t es;
-        common::uint32_t ds;
-        */
         common::uint32_t error;
 
         common::uint32_t eip;
         common::uint32_t cs;
         common::uint32_t eflags;
         common::uint32_t esp;
-        common::uint32_t ss;        
+        common::uint32_t ss;
     } __attribute__((packed));
     
-    
-    class Task
-    {
-    friend class TaskManager;
+    enum class TaskState {
+        Ready,
+        Running,
+        Blocked,
+        Terminated
+    };
+
+    typedef void (*EntryPoint)(common::uint32_t);
+
+    class Task {
+        friend class TaskManager;
     private:
         common::uint8_t stack[4096]; // 4 KiB
-        CPUState* cpustate;
-    public:
-        Task(GlobalDescriptorTable *gdt, void entrypoint());
-        ~Task();
+        CPUState* cpuState;
+        TaskState state = TaskState::Terminated;
+        int pid = -1;
+        int ppid = -1;
+        int waitPid = -2; // not waiting for any child
     };
     
-    
-    class TaskManager
-    {
+    class TaskManager {
     private:
-        Task* tasks[256];
-        int numTasks;
-        int currentTask;
+        Task tasks[256];
+        int currentTaskPid;
     public:
-        TaskManager();
-        ~TaskManager();
-        bool AddTask(Task* task);
-        CPUState* Schedule(CPUState* cpustate);
-    };
-    
-    
-    
-}
+        TaskManager(GlobalDescriptorTable* gdt);
 
+        CPUState* Schedule(CPUState* cpuState);
+
+        void Fork(CPUState* cpuState);
+        CPUState* Exec(CPUState* cpuState, EntryPoint entryPoint, common::uint32_t n);
+        void GetPid(CPUState* cpuState);
+        CPUState* WaitPid(CPUState* cpuState, int pid);
+        CPUState* Exit(CPUState* cpuState);
+
+        void PrintProcessTable(Task* currentTask, Task* nextTask, int n);
+    };
+}
 
 #endif

@@ -179,42 +179,27 @@ uint32_t InterruptManager::HandleInterrupt(uint8_t interrupt, uint32_t esp)
 
 uint32_t InterruptManager::DoHandleInterrupt(uint8_t interrupt, uint32_t esp)
 {
-    if(handlers[interrupt] != 0)
-    {
+    if (interrupt == hardwareInterruptOffset) {
+        // Timer
+        esp = (uint32_t)taskManager->Schedule((CPUState*)esp);
+    } else if (handlers[interrupt] != 0) {
         esp = handlers[interrupt]->HandleInterrupt(esp);
-    }
-    else if(interrupt != hardwareInterruptOffset)
-    {
+    } else if (interrupt == 0x06) {
+        // Floppy Disk
+    } else if (interrupt == 0x0D) {
+        // Primary ATA Hard Disk
+    } else if (interrupt != hardwareInterruptOffset) {
         printf("UNHANDLED INTERRUPT 0x");
         printfHex(interrupt);
     }
-    
-    if(interrupt == hardwareInterruptOffset)
-    {
-        esp = (uint32_t)taskManager->Schedule((CPUState*)esp);
-    }
 
-    // hardware interrupts must be acknowledged
-    if(hardwareInterruptOffset <= interrupt && interrupt < hardwareInterruptOffset+16)
-    {
+    // Hardware interrupts must be acknowledged.
+    if (interrupt >= hardwareInterruptOffset && interrupt < hardwareInterruptOffset + 16) {
         programmableInterruptControllerMasterCommandPort.Write(0x20);
-        if(hardwareInterruptOffset + 8 <= interrupt)
+        if (hardwareInterruptOffset + 8 <= interrupt) {
             programmableInterruptControllerSlaveCommandPort.Write(0x20);
+        }
     }
 
     return esp;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
